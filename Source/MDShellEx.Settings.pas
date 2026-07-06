@@ -100,6 +100,7 @@ type
     FLayoutMode: TLayoutMode;
     FViewerPercentSize: word;
     FAllowUnsafeHTML: Boolean;
+    FCustomCSS: string;
     function GetUseDarkStyle: Boolean;
     function GetThemeSectionName: string;
     function GetButtonTextColor: TColor;
@@ -157,6 +158,10 @@ type
     //(safe mode): such tags are neutralized into entities. NB: this is unrelated
     //to DownloadFromWEB, which controls loading of remote image resources.
     property AllowUnsafeHTML: Boolean read FAllowUnsafeHTML write FAllowUnsafeHTML;
+    //User-defined stylesheet prepended to the generated HTML. Empty means "use
+    //the built-in default" (TMarkDownFile.GetDefaultCSS). Stored Base64-encoded
+    //in the INI because it is multi-line.
+    property CustomCSS: string read FCustomCSS write FCustomCSS;
   end;
 
   TPreviewSettings = class(TSettings)
@@ -214,6 +219,7 @@ uses
   , System.Rtti
   , System.StrUtils
   , System.IOUtils
+  , System.NetEncoding
   , Winapi.ShlObj
   , Winapi.Windows
 {$IFNDEF DISABLE_STYLES}
@@ -236,6 +242,36 @@ const
   EDITOPTION_OPTIONS = 'EditorOptions_Options';
 var
   ThemeAttributes: TList<TThemeAttribute>;
+
+//Encode/decode a multi-line string to a single INI-safe line. Base64 without
+//line wrapping (CharsPerLine = 0) so the result has no CR/LF.
+function EncodeIniText(const AValue: string): string;
+var
+  LEnc: TBase64Encoding;
+begin
+  if AValue = '' then
+    Exit('');
+  LEnc := TBase64Encoding.Create(0);
+  try
+    Result := LEnc.EncodeBytesToString(TEncoding.UTF8.GetBytes(AValue));
+  finally
+    LEnc.Free;
+  end;
+end;
+
+function DecodeIniText(const AValue: string): string;
+var
+  LEnc: TBase64Encoding;
+begin
+  if AValue = '' then
+    Exit('');
+  LEnc := TBase64Encoding.Create(0);
+  try
+    Result := TEncoding.UTF8.GetString(LEnc.DecodeStringToBytes(AValue));
+  finally
+    LEnc.Free;
+  end;
+end;
 
 procedure InitDefaultThemesAttributes;
 
@@ -380,6 +416,7 @@ begin
   FButtonDrawRounded := FIniFile.ReadBool('Global', 'ButtonDrawRounded', false);
   FMenuDrawRounded := FIniFile.ReadBool('Global', 'MenuDrawRounded', false);
   FAllowUnsafeHTML := FIniFile.ReadBool('Global', 'AllowUnsafeHTML', false);
+  FCustomCSS := DecodeIniText(FIniFile.ReadString('Global', 'CustomCSS', ''));
 //Select Style by default on Actual Windows Theme
   if FThemeSelection = tsAsWindows then
   begin
@@ -462,6 +499,7 @@ begin
   FIniFile.WriteBool('Global', 'ButtonDrawRounded', ButtonDrawRounded);
   FIniFile.WriteBool('Global', 'MenuDrawRounded', MenuDrawRounded);
   FIniFile.WriteBool('Global', 'AllowUnsafeHTML', FAllowUnsafeHTML);
+  FIniFile.WriteString('Global', 'CustomCSS', EncodeIniText(FCustomCSS));
 
   if ASynEditHighilighter <> nil then
   begin

@@ -1,6 +1,6 @@
 ﻿# Markdown Editor and Shell Extensions [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**Latest Version 2.8.2 - 26 Jun 2026**
+**Latest Version 2.8.3 - 06 Jul 2026**
 
 **A collection of tools for markdown files, to edit and view content:**
 
@@ -66,6 +66,13 @@ To manually install the SVGShellExtensions.dll follow these steps:
 3. To install manually the dll run the `Unregister_Register.cmd` (run-as-administrator): notice that you must change the path into cmd file.
 
 ## Release Notes ##
+06 Jul 2026: ver. 2.8.3
+- Added a configurable HTML stylesheet (CSS) in Settings (Preview page), with CSS syntax highlighting: you can customize how the markdown preview is rendered.
+- Large images now fit the page width by default (img max-width).
+- Reorganized the Settings dialog: editor options in the "General" page, HTML preview options in the "Preview" page.
+- The Settings dialog can now be closed with the Esc key.
+- Fixed "List index out of bounds" at startup when restoring the previous session.
+
 26 Jun 2026: ver. 2.8.2
 - Fixed random Access Violation when closing a document tab.
 - Fixed Access/External Violation when zooming the HTML preview with Ctrl+Mouse wheel (including the code-block syntax highlighter).

@@ -67,7 +67,6 @@ const
     FileAttrib: Integer = SysUtils.faArchive or SysUtils.faReadOnly );
   function  GetModuleLocation: string;
   function TryLoadTextFile(const AFileName: TFileName): string;
-  function GetDefaultCSS: string;
   function FileWithExtExists(var AFileName: TFileName; const AFileExt: array of string): boolean;
   function GetFileMasks(const AFileExt: array of string;
     const ASeparator: Char = ';'): string;
@@ -257,44 +256,6 @@ begin
     else
       raise;
   end;
-end;
-
-function GetDefaultCSS: string;
-begin
-  Result :=
-    '<style type="text/css">'+sLineBreak+
-    'code{'+sLineBreak+
-    '  font-size: medium;'+sLineBreak+
-    '  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;'+sLineBreak+
-    '}'+sLineBreak+
-    'pre{'+sLineBreak+
-    '  border: 1px solid #ddd;'+sLineBreak+
-    '  border-left: 3px solid #0d6efd;'+sLineBreak+
-    '  overflow: auto;'+sLineBreak+
-    '  padding: 1em 1.5em;'+sLineBreak+
-    '  display: block;'+sLineBreak+
-    '}'+sLineBreak+
-    'Blockquote{'+sLineBreak+
-    '  border-left: 3px solid #0d6efd;'+sLineBreak+
-    '  padding-left: 0.5em;'+sLineBreak+
-    '  margin-left:1em;'+sLineBreak+
-    '}'+sLineBreak+
-    'Blockquote p{'+sLineBreak+
-    '  margin: 0;'+sLineBreak+
-    '}'+sLineBreak+
-    'table{'+sLineBreak+
-    '  border:1px solid;'+sLineBreak+
-    '  border-collapse:collapse;'+sLineBreak+
-    '}'+sLineBreak+
-    'th{'+
-    '  padding:5px;'+sLineBreak+
-    '  border:1px solid;'+sLineBreak+
-    '}'+sLineBreak+
-    'td{'+sLineBreak+
-    '  padding:5px;'+sLineBreak+
-    '  border:1px solid;'+sLineBreak+
-    '}'+sLineBreak+
-    '</style>'+sLineBreak;
 end;
 
 function FileWithExtExists(var AFileName: TFileName; const AFileExt: array of string): boolean;

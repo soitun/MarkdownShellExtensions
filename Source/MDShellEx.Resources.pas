@@ -70,14 +70,19 @@ type
     FHTML: string;
     FCodeBlockEmitter: TBlockEmitter;
     FAllowUnsafe: Boolean;
+    FCSS: string;
     procedure SetMarkDownContent(const AValue: string);
-    function GetDefaultCSS: string;
   public
+    //Built-in default stylesheet (the <style>...</style> block prepended to the
+    //generated HTML). Exposed as a class function so callers (e.g. the Settings
+    //GUI) can show/reset it. Pass a non-empty ACSS to Create to override it.
+    class function GetDefaultCSS: string; static;
     constructor Create(const AMarkDownContent: string;
       const AProcessorDialect: TMarkdownProcessorDialect;
       const AParseImmediately: Boolean = True;
       const ACodeBlockEmitter: TBlockEmitter = nil;
-      const AAllowUnsafe: Boolean = False);
+      const AAllowUnsafe: Boolean = False;
+      const ACSS: string = '');
 
     procedure Clear;
     procedure Parse;
@@ -571,23 +576,29 @@ constructor TMarkDownFile.Create(const AMarkDownContent: string;
   const AProcessorDialect: TMarkdownProcessorDialect;
   const AParseImmediately: Boolean = True;
   const ACodeBlockEmitter: TBlockEmitter = nil;
-  const AAllowUnsafe: Boolean = False);
+  const AAllowUnsafe: Boolean = False;
+  const ACSS: string = '');
 begin
   Clear;
   FCodeBlockEmitter := ACodeBlockEmitter;
   FProcessorDialect := AProcessorDialect;
   FAllowUnsafe := AAllowUnsafe;
+  FCSS := ACSS;
   MarkDownContent := AMarkDownContent;
   if AParseImmediately then
     Parse;
 end;
 
-function TMarkDownFile.GetDefaultCSS: string;
+class function TMarkDownFile.GetDefaultCSS: string;
 begin
   Result :=
     '<style type="text/css">'+sLineBreak+
     'body{'+sLineBreak+
     '  font-family: Arial, Helvetica, sans-serif;'+sLineBreak+
+    '}'+sLineBreak+
+    'img{'+sLineBreak+
+    '  max-width: 100%;'+sLineBreak+
+    '  height: auto;'+sLineBreak+
     '}'+sLineBreak+
     'code{'+sLineBreak+
     '  font-family: "Consolas", monospace;'+sLineBreak+
@@ -636,8 +647,12 @@ begin
     //processor (TConfiguration.Destroy frees its codeBlockEmitter).
     if FCodeBlockEmitter <> nil then
       LMDProcessor.Config.codeBlockEmitter := FCodeBlockEmitter;
-    //Convert MD To HTML
-    FHTML := GetDefaultCSS+LMDProcessor.process(FMarkDownContent);
+    //Convert MD To HTML. Use the caller-supplied stylesheet (user setting) when
+    //provided, otherwise fall back to the built-in default.
+    if FCSS <> '' then
+      FHTML := FCSS+LMDProcessor.process(FMarkDownContent)
+    else
+      FHTML := GetDefaultCSS+LMDProcessor.process(FMarkDownContent);
     {$IFDEF DEBUG}
     with TStringStream.Create(FHTML, TEncoding.UTF8) do
     begin

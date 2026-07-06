@@ -2,6 +2,10 @@
 body{
   font-family: Arial, Helvetica, sans-serif;
 }
+img{
+  max-width: 100%;
+  height: auto;
+}
 code{
   font-family: "Consolas", monospace;
 }
@@ -33,7 +37,7 @@ td{
 }
 </style>
 <h1>Markdown Editor and Shell Extensions <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg" alt="License"/></a></h1>
-<p><strong>Latest Version 2.8.2 - 26 Jun 2026</strong></p>
+<p><strong>Latest Version 2.8.3 - 06 Jul 2026</strong></p>
 <p><strong>A collection of tools for markdown files, to edit and view content:</strong></p>
 <ul>
 <li><p>A <strong>Markdown Text Editor</strong> to manually edit a markdown file, with instant preview of the output in a HTML Viewer.</p>
@@ -84,6 +88,14 @@ td{
 </li>
 </ol>
 <h2>Release Notes</h2>
+<p>06 Jul 2026: ver. 2.8.3</p>
+<ul>
+<li>Added a configurable HTML stylesheet (CSS) in Settings (Preview page), with CSS syntax highlighting: you can customize how the markdown preview is rendered.</li>
+<li>Large images now fit the page width by default (img max-width).</li>
+<li>Reorganized the Settings dialog: editor options in the &ldquo;General&rdquo; page, HTML preview options in the &ldquo;Preview&rdquo; page.</li>
+<li>The Settings dialog can now be closed with the Esc key.</li>
+<li>Fixed &ldquo;List index out of bounds&rdquo; at startup when restoring the previous session.</li>
+</ul>
 <p>26 Jun 2026: ver. 2.8.2</p>
 <ul>
 <li>Fixed random Access Violation when closing a document tab.</li>

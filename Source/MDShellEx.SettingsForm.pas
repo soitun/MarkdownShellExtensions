@@ -22,10 +22,6 @@
 {  See the License for the specific language governing permissions and         }
 {  limitations under the License.                                              }
 {                                                                              }
-{                                                                              }
-{  The Initial Developer of the Original Code is Rodrigo Ruz V.                }
-{  Portions created by Rodrigo Ruz V. are Copyright 2011-2021 Rodrigo Ruz V.   }
-{  All Rights Reserved.                                                        }
 {******************************************************************************}
 unit MDShellEx.SettingsForm;
 
@@ -45,9 +41,8 @@ type
   TMDSettingsForm = class(TForm)
     pc: TPageControl;
     tsColors: TTabSheet;
-    stGeneral: TTabSheet;
-    tsFont: TTabSheet;
-    stTheme: TTabSheet;
+    tsGeneral: TTabSheet;
+    tsTheme: TTabSheet;
     paLeft: TPanel;
     paElements: TPanel;
     BoxElements: TListBox;
@@ -80,22 +75,6 @@ type
     ThemeClientPanel: TPanel;
     ResetPanel: TPanel;
     ResetButton: TStyledButton;
-    MDGroupBox: TGroupBox;
-    FontLabel: TLabel;
-    MDFontComboBox: TComboBox;
-    SizeLabel: TLabel;
-    MDFontSizeEdit: TEdit;
-    MDUpDown: TUpDown;
-    HTMLGroupBox: TGroupBox;
-    Label1: TLabel;
-    Label2: TLabel;
-    HTMLFontComboBox: TComboBox;
-    HTMLFontSizeEdit: TEdit;
-    HTMLUpDown: TUpDown;
-    ShowMDCheckBox: TCheckBox;
-    RenderingGroupBox: TGroupBox;
-    DownloadFromWebCheckBox: TCheckBox;
-    RescalingImageCheckBox: TCheckBox;
     tsPDFLayout: TTabSheet;
     OrientationImageList: TSVGIconImageList;
     OrientationRadioGroup: TRadioGroup;
@@ -109,10 +88,6 @@ type
     MarginLeftLabel: TLabel;
     MarginRightLabel: TLabel;
     MarginBottomLabel: TLabel;
-    MarkdownGroupBox: TGroupBox;
-    ProcessorDialectComboBox: TComboBox;
-    ProcessorDialectLabel: TLabel;
-    AllowUnsafeHTMLCheckBox: TCheckBox;
     RoundedButtonsGroupBox: TGroupBox;
     ToolbarRoundedCheckBox: TCheckBox;
     ButtonsRoundedCheckBox: TCheckBox;
@@ -132,6 +107,30 @@ type
     LightActiveLineColorColorBox: TColorBox;
     HighlighTextGroupBox: TGroupBox;
     HighlightMarkdownTextCheckBox: TCheckBox;
+    tsPreview: TTabSheet;
+    HTMLViewerRenderingGroupBox: TGroupBox;
+    MarkdownGroupBox: TGroupBox;
+    ProcessorDialectLabel: TLabel;
+    ProcessorDialectComboBox: TComboBox;
+    AllowUnsafeHTMLCheckBox: TCheckBox;
+    RenderingGroupBox: TGroupBox;
+    DownloadFromWebCheckBox: TCheckBox;
+    RescalingImageCheckBox: TCheckBox;
+    HTMLGroupBox: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    HTMLFontComboBox: TComboBox;
+    HTMLFontSizeEdit: TEdit;
+    HTMLUpDown: TUpDown;
+    HTMLViewerStyleGroupBox: TGroupBox;
+    StyleSynEdit: TSynEdit;
+    MDGroupBox: TGroupBox;
+    FontLabel: TLabel;
+    SizeLabel: TLabel;
+    MDFontComboBox: TComboBox;
+    MDFontSizeEdit: TEdit;
+    MDUpDown: TUpDown;
+    ShowMDCheckBox: TCheckBox;
     procedure BoxElementsClick(Sender: TObject);
     procedure cbForegroundClick(Sender: TObject);
     procedure cbBackgroundClick(Sender: TObject);
@@ -144,6 +143,7 @@ type
     procedure ExitFromSettings(Sender: TObject);
     procedure ColorBoxSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure MenuButtonGroupButtonClicked(Sender: TObject; Index: Integer);
     procedure SelectThemeRadioGroupClick(Sender: TObject);
     procedure ThemesRadioGroupClick(Sender: TObject);
@@ -205,7 +205,17 @@ uses
 {$ENDIF}
   MarkdownProcessor,
   MarkdownUtils,
+  SynHighlighterCss,
   uRegistry;
+
+//Normalize a stylesheet for comparison: ignore line-endings and surrounding
+//whitespace, so "same as default" detection is robust to editor formatting.
+function NormalizedCSS(const AValue: string): string;
+begin
+  Result := StringReplace(AValue, #13, '', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, '', [rfReplaceAll]);
+  Result := Trim(Result);
+end;
 
 {$R *.dfm}
 
@@ -550,9 +560,9 @@ begin
   MDFontComboBox.Items.Assign(Screen.Fonts);
   HTMLFontComboBox.Items.Assign(Screen.Fonts);
   tsColors.TabVisible := false;
-  stGeneral.TabVisible := false;
-  tsFont.TabVisible := false;
-  stTheme.TabVisible := false;
+  tsGeneral.TabVisible := false;
+  tsPreview.TabVisible := false;
+  tsTheme.TabVisible := false;
   tsPDFLayout.TabVisible := false;
   tsUpdates.TabVisible := false;  
 
@@ -560,6 +570,24 @@ begin
   MenuButtonGroup.Font.Height := Round(MenuButtonGroup.Font.Height * 1.2);
 
   UpdateGroupBox.Caption := CheckForUpdates_Msg;
+
+  //Syntax highlighting for the HTML default-style editor (CSS). Owned by the
+  //form, so it is freed automatically.
+  StyleSynEdit.Highlighter := TSynCssSyn.Create(Self);
+
+  //Allow closing the dialog with Esc.
+  KeyPreview := True;
+  OnKeyDown := FormKeyDown;
+end;
+
+procedure TMDSettingsForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_ESCAPE) and (Shift = []) then
+  begin
+    Key := 0;
+    ExitFromSettings(nil);
+  end;
 end;
 
 procedure TMDSettingsForm.FormDestroy(Sender: TObject);
@@ -620,6 +648,14 @@ begin
 
   ProcessorDialectComboBox.ItemIndex := ord(ASettings.ProcessorDialect);
   AllowUnsafeHTMLCheckBox.Checked := ASettings.AllowUnsafeHTML;
+
+  //Load the HTML default stylesheet: the user's custom CSS if set, otherwise
+  //the built-in default (so the user always edits starting from it).
+  if ASettings.CustomCSS <> '' then
+    StyleSynEdit.Text := ASettings.CustomCSS
+  else
+    StyleSynEdit.Text := TMarkDownFile.GetDefaultCSS;
+  StyleSynEdit.Modified := False;
   HighlightMarkdownTextCheckBox.Checked := TEditorSettings(ASettings).HighlightMarkdownText;
   ToolbarRoundedCheckBox.Checked := TEditorSettings(ASettings).ToolbarDrawRounded;
   ButtonsRoundedCheckBox.Checked := TEditorSettings(ASettings).ButtonDrawRounded;
@@ -709,6 +745,13 @@ begin
 
   ASettings.ProcessorDialect := TMarkdownProcessorDialect(ProcessorDialectComboBox.ItemIndex);
   ASettings.AllowUnsafeHTML := AllowUnsafeHTMLCheckBox.Checked;
+
+  //Save the stylesheet only when it differs from the built-in default; when it
+  //matches, store empty so the document keeps inheriting future default changes.
+  if NormalizedCSS(StyleSynEdit.Text) = NormalizedCSS(TMarkDownFile.GetDefaultCSS) then
+    ASettings.CustomCSS := ''
+  else
+    ASettings.CustomCSS := StyleSynEdit.Text;
 
   ASettings.StyleName := SelectedStyleName;
   ASettings.RescalingImage := RescalingImageCheckBox.Checked;

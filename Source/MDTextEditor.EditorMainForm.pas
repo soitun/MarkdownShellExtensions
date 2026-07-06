@@ -562,7 +562,8 @@ begin
     if AReloadImages then
       HtmlViewer.clear;
     FMarkDownFile := TMarkDownFile.Create(SynEditor.Lines.Text,
-      ASettings.ProcessorDialect, True, ACodeBlockEmitter, ASettings.AllowUnsafeHTML);
+      ASettings.ProcessorDialect, True, ACodeBlockEmitter, ASettings.AllowUnsafeHTML,
+      ASettings.CustomCSS);
     //Load HTML content into HTML-Viewer
     LOldPos := HtmlViewer.VScrollBarPosition;
     HtmlViewer.DefFontSize := ASettings.HTMLFontSize;
@@ -1142,24 +1143,33 @@ procedure TfrmMain.LoadOpenedFiles;
 var
   I: Integer;
   LFileName: string;
-  LIndex: Integer;
   LCurrentFileName: string;
+  LEditFile: TEditingFile;
 begin
-  LIndex := -1;
+  LCurrentFileName := FEditorSettings.CurrentFileName;
   PageControl.Hide;
   try
     for I := 0 to FEditorSettings.OpenedFileList.Count-1 do
     begin
-      LCurrentFileName := FEditorSettings.CurrentFileName;
       LFileName := FEditorSettings.OpenedFileList.Strings[I];
-      if OpenFile(LFileName, False) and SameText(LFileName, LCurrentFileName) then
-        LIndex := I;
+      OpenFile(LFileName, False);
     end;
-    if LIndex <> -1 then
+    //Activate the tab of the file that was current in the last session.
+    //NB: iterate EditFileList (the files actually opened), never index it with
+    //an OpenedFileList index: files that no longer exist / fail to open / are
+    //duplicates are not added, so the two lists can have different lengths.
+    for I := 0 to EditFileList.Count-1 do
     begin
-      EditFileList.Items[LIndex];
-      UpdateMDViewer(True);
+      LEditFile := TEditingFile(EditFileList.Items[I]);
+      if SameText(LEditFile.FileName, LCurrentFileName) and Assigned(LEditFile.TabSheet) then
+      begin
+        PageControl.ActivePage := LEditFile.TabSheet;
+        Break;
+      end;
     end;
+    if Assigned(PageControl.OnChange) then
+      PageControl.OnChange(PageControl);
+    UpdateMDViewer(True);
   finally
     PageControl.Show;
   end;
